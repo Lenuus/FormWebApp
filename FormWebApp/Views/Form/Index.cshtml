@@ -1,0 +1,151 @@
+﻿@using FormWebApp.Common.Enums
+@model PagedResponseModel<FormDetailModel>
+
+@{
+    ViewData["Title"] = "All Forms";
+}
+@{
+    var search = @ViewContext.HttpContext.Request.Query["Search"];
+    var pageIndex = @ViewContext.HttpContext.Request.Query["PageIndex"].SingleOrDefault() ?? "0";
+    var pageSize = @ViewContext.HttpContext.Request.Query["PageSize"].SingleOrDefault() ?? "50";
+}
+
+<div class="container">
+    <h2>All Forms</h2>
+    <input type="text" id="txtSearch" class="form-control" />
+    <button type="button" class="btn btn-success btnSearch">Search Form</button>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFormModal">Add New Form</button>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Created Date</th>
+            </tr>
+        </thead>
+        <tbody id="formRowArea">
+        </tbody>
+    </table>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="addFormModal" tabindex="-1" aria-labelledby="addFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Add Form</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="basic-url" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="txtFormName">
+                </div>
+                <div class="mb-3">
+                    <label for="basic-url" class="form-label">Description</label>
+                    <textarea class="form-control" id="txtFormDescription"></textarea>
+                </div>
+                <h3 class="mb-3">Fields</h3>
+                <form id="fieldRepeater">
+                    <div data-repeater-list="fieldRepeater">
+                        <div class="row mb-2" data-repeater-item>
+                            <div class="col-3">
+                                <input type="text" name="Name" class="form-control" />
+                            </div>
+                            <div class="col-3">
+                                <select name="FieldType" class="form-control">
+                                    @foreach (var fieldType in Enum.GetNames(typeof(FieldType)))
+                                    {
+                                        <option value="@fieldType">@fieldType</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="checkbox" name="Required" /> Is Required?
+                            </div>
+                            <div class="col-3">
+                                <button type="button" data-repeater-delete class="btn btn-danger">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-success" data-repeater-create> Add New Field </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnAddNewForm">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/jquery.repeater.min.js"></script>
+    <script>
+        $(function () {
+            $('#fieldRepeater').repeater();
+            $(".btnSearch").on("click", function () {
+                loadTable();
+            })
+            $("#btnAddNewForm").on("click", function () {
+                var name = $("#txtFormName").val();
+                var description = $("#txtFormDescription").val();
+                var fields = $('#fieldRepeater').repeaterVal()["fieldRepeater"];
+                if (name == "" || description == "" || fields.length <= 0) {
+                    alert("Please fill all areas or add field")
+                }
+
+                fields.map((field) => {
+                    if (field.Name == "" || field.FieldType == "") {
+                        alert("Please fill all fields names or types")
+                    }
+                })
+
+                var fieldArray = [];
+                fields.map((field) => {
+                    fieldArray.push({ Name: field.Name, FieldType: field.FieldType, Required: field.Required.length > 0 });
+                })
+                console.log(fieldArray);
+
+                $.ajax({
+                    url: '/form/create',
+                    type: 'post',
+                    data: {
+                        Name: name,
+                        Description: description,
+                        Fields: fieldArray
+                    },
+                    success: function (response) {
+                        $("#txtSearch").val("");
+                        loadTable();
+                    },
+                    error: function (response) {
+
+                    }
+                })
+
+            })
+            loadTable();
+        })
+        var loadTable = function () {
+            $.ajax({
+                url: '/form/pagedlist',
+                type: 'post',
+                data: { PageIndex: 0, PageSize: 99999, Search: $("#txtSearch").val() },
+                success: function (response) {
+                    console.log(response)
+                    var tableArea = $("#formRowArea");
+                    tableArea.html("");
+                    response.data.map((form) => {
+                        var createdAt = moment(form.createdDate).format('D.MM.yyyy');
+                        tableArea.append(
+                            `<tr id=${form.id}">
+                                <td><a href="/forms/${form.id}">${form.name}</a></td>
+                                <td>${form.description}</td>
+                                <td>${createdAt}</td>
+                            </tr>`
+                        )
+                    })
+                }
+            })
+        }
+    </script>
+}

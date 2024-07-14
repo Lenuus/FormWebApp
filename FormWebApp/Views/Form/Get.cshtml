@@ -1,0 +1,36 @@
+﻿@using FormWebApp.Common.Enums
+@model FormDetailModel
+
+<h1>@Model.Name</h1>
+<p>@Model.Description</p>
+
+<form action="/Form/SubmitForm" method="post" class="col-12">
+    @foreach (var field in Model.Fields)
+    {
+        <div class="row mb-3">
+            <label for="basic-url" class="form-label">@field.Name</label>
+            @switch (field.FieldType)
+            {
+                case FieldType.Text:
+                    <text><input type="text" name="@field.Name" @(field.Required ? "required" : string.Empty) class="form-control" /></text>
+                    break;
+                case FieldType.Number:
+                    <text><input type="number" name="@field.Name" @(field.Required ? "required" : string.Empty) /></text>
+                    break;
+                case FieldType.Email:
+                    <text><input type="email" name="@field.Name" @(field.Required ? "required" : string.Empty) /></text>
+                    break;
+                case FieldType.Textarea:
+                    <text><textarea name="@field.Name" @(field.Required ? "required" : string.Empty)></textarea></text>
+                    break;
+                case FieldType.Password:
+                    <text><input type="password" name="@field.Name" @(field.Required ? "required" : string.Empty) /></text>
+                    break;
+                default:
+                    <text><input type="text" name="@field.Name" @(field.Required ? "required" : string.Empty) /></text>
+                    break;
+            }
+        </div>
+    }
+    <button type="submit" class="btn btn-success">Submit Form</button>
+</form>
